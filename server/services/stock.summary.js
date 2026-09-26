@@ -54,15 +54,21 @@ export const getStockSummary = async (productIds, { warehouseId } = {}) => {
 
 /**
  * Product ids matching a stock status, computed in SQL so filtering works across all pages.
+ * Options: warehouseId (stock in one warehouse), categoryId, activeOnly.
  */
-export const productIdsByStatus = async (status, { warehouseId } = {}) => {
+export const productIdsByStatus = async (status, { warehouseId, categoryId, activeOnly = false } = {}) => {
   const warehouseClause = warehouseId ? Prisma.sql`AND l.warehouseId = ${warehouseId}` : Prisma.empty;
   const qty = Prisma.sql`COALESCE(s.qty, 0)`;
   const condition = {
     OUT: Prisma.sql`${qty} <= 0`,
     LOW: Prisma.sql`${qty} > 0 AND r.minQty IS NOT NULL AND ${qty} <= r.minQty`,
     OK: Prisma.sql`${qty} > 0 AND (r.minQty IS NULL OR ${qty} > r.minQty)`,
+    IN_STOCK: Prisma.sql`${qty} > 0`,
   }[status];
+  const filters = [
+    categoryId ? Prisma.sql`AND p.categoryId = ${categoryId}` : Prisma.empty,
+    activeOnly ? Prisma.sql`AND p.isActive = true` : Prisma.empty,
+  ];
 
   const rows = await prisma.$queryRaw`
     SELECT p.id FROM products p
@@ -73,6 +79,21 @@ export const productIdsByStatus = async (status, { warehouseId } = {}) => {
       GROUP BY sq.productId
     ) s ON s.productId = p.id
     LEFT JOIN reorder_rules r ON r.productId = p.id
-    WHERE ${condition}`;
+    WHERE ${condition} ${Prisma.join(filters, ' ')}`;
   return rows.map((r) => r.id);
+};
+
+/**
+ * Total units and total value (quantity × unit cost) held in warehouse locations.
+ */
+export const stockValue = async ({ warehouseId, categoryId } = {}) => {
+  const [row] = await prisma.$queryRaw`
+    SELECT COALESCE(SUM(sq.quantity), 0) AS units, COALESCE(SUM(sq.quantity * p.unitCost), 0) AS value
+    FROM stock_quants sq
+    JOIN locations l ON l.id = sq.locationId
+    JOIN products p ON p.id = sq.productId
+    WHERE l.type = 'INTERNAL'
+      ${warehouseId ? Prisma.sql`AND l.warehouseId = ${warehouseId}` : Prisma.empty}
+      ${categoryId ? Prisma.sql`AND p.categoryId = ${categoryId}` : Prisma.empty}`;
+  return { units: new Prisma.Decimal(row.units), value: new Prisma.Decimal(row.value) };
 };

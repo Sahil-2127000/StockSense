@@ -108,7 +108,7 @@ const assertProducts = async (tx, lines) => {
  * Quantity of each product that this operation can still use at its source location:
  * stock on hand there minus what other READY deliveries / transfers from there have reserved.
  */
-const availabilityFor = async (db, operation) => {
+export const availabilityFor = async (db, operation) => {
   const productIds = operation.lines.map((l) => l.productId);
   const locationId = operation.sourceLocationId;
 

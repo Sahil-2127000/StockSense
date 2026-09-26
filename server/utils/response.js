@@ -21,7 +21,7 @@ const sendSuccess = (res, data = null, statusCode = 200, meta = undefined) => {
   };
 
   if (meta !== undefined) {
-    responsePayload.meta = meta;
+    responsePayload.meta = serialize(meta);
   }
 
   return res.status(statusCode).json(responsePayload);
