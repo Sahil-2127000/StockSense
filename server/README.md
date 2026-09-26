@@ -1,6 +1,16 @@
 # StockSense Backend 📦
 
-Backend API server for **StockSense**, a modular Inventory Management System built with Express, MySQL, and Prisma in modern JavaScript (ES Modules).
+Backend API server for **StockSense**, an Inventory Management System that replaces paper registers and spreadsheets with one live, central system. Built with Express, MySQL and Prisma in modern JavaScript (ES Modules).
+
+## ✨ Features
+- **Authentication**: sign up, login (httpOnly JWT cookie), OTP password reset by email, roles (MANAGER / STAFF)
+- **Master data**: warehouses, locations (racks, floors), categories, suppliers and customers, products with reorder rules
+- **Operations**: receipts, delivery orders, internal transfers and stock adjustments with a Draft → Waiting / Ready → Done flow
+- **Stock ledger**: every movement is logged; balances are updated in the same transaction with row locks, so stock never goes negative
+- **Stock & move history**: on hand, reserved, free and value per product and location; full filterable ledger
+- **Dashboard**: KPI cards, stock value, 7-day movement, low-stock and late / waiting alerts
+- **Real time**: Socket.IO pushes operation, stock and low-stock events to every logged-in client
+- **Docs & tests**: Swagger UI at `/api/docs`, 110 automated tests against a real MySQL test database
 
 ---
 
@@ -11,6 +21,9 @@ Backend API server for **StockSense**, a modular Inventory Management System bui
 - **Framework**: Express.js
 - **Database / ORM**: MySQL with Prisma
 - **Validation**: Zod
+- **Real time**: Socket.IO
+- **Security**: bcrypt, JWT (httpOnly cookie), Helmet, express-rate-limit
+- **API docs**: Swagger UI (OpenAPI 3)
 - **Testing**: Vitest + Supertest
 - **Linting & Formatting**: ESLint (Flat config) + Prettier
 
@@ -85,22 +98,20 @@ npm run dev
 npm run start
 ```
 
-### 6. Health Check
-Verify the server is running:
+### 6. Health Check & API Docs
 ```bash
 curl http://localhost:5000/api/health   # use your PORT from .env
 ```
-Expected response:
-```json
-{
-  "success": true,
-  "status": "ok"
-}
-```
+Expected: `{ "success": true, "status": "ok", "database": "up", "uptime": 12 }`
+
+Open **http://localhost:5000/api/docs** to browse and try every endpoint (log in with `POST /auth/login` first).
+Full reference: [docs/API.md](docs/API.md) · Database design: [docs/DATABASE.md](docs/DATABASE.md) · Team conventions: [docs/CONTEXT.md](docs/CONTEXT.md)
 
 ---
 
 ## 🧪 Testing & Code Quality
+
+Tests run against a separate database. Create `.env.test` (a copy of `.env` with the database name `stocksense_test` and `NODE_ENV=test`), then:
 
 ```bash
 # Run tests

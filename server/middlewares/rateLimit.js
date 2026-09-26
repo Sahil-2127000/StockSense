@@ -13,3 +13,6 @@ const limiter = (windowMinutes, limit, message) =>
 
 export const loginLimiter = limiter(15, 10, 'Too many login attempts. Try again in 15 minutes.');
 export const otpLimiter = limiter(15, 5, 'Too many code requests. Try again in 15 minutes.');
+
+// General safety net for the whole API (per IP)
+export const apiLimiter = limiter(1, 300, 'Too many requests. Please slow down.');

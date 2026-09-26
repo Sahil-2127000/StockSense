@@ -16,10 +16,7 @@ describe('StockSense Core Middleware & Utilities', () => {
       const response = await request(server).get('/api/health');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        success: true,
-        status: 'ok',
-      });
+      expect(response.body).toMatchObject({ success: true, status: 'ok', database: 'up' });
     });
 
     it('GET /api/unknown-route returns 404 JSON response', async () => {

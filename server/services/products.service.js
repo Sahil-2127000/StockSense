@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
 import { buildMeta, getPagination } from '../utils/pagination.js';
+import { stockChanged } from './events.service.js';
 import { getSystemLocation, moveStock, nextReference } from './stock.engine.js';
 import { getStockSummary, productIdsByStatus, stockStatus } from './stock.summary.js';
 
@@ -124,6 +125,7 @@ export const create = async ({ reorderRule, initialStock, ...data }, user) => {
     return product.id;
   });
 
+  if (initialStock) stockChanged([productId]);
   return getById(productId);
 };
 
