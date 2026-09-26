@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import prisma from '../config/db.js';
 import config from '../config/env.js';
 import ApiError from '../utils/ApiError.js';
+import { codeEmail } from '../utils/emailTemplates.js';
 import { sendMail } from '../utils/mailer.js';
 import { signAuthToken, signResetToken, verifyToken } from '../utils/token.js';
 
@@ -26,17 +27,6 @@ const toPublicUser = ({ passwordHash: _passwordHash, updatedAt: _updatedAt, ...u
 
 // ─── One-time codes (shared by email verification and password reset) ───
 
-const EMAILS = {
-  EMAIL_VERIFICATION: (name, code) => ({
-    subject: 'Verify your StockSense email',
-    text: `Hi ${name},\n\nWelcome to StockSense! Your verification code is ${code}.\nIt expires in ${OTP_TTL_MINUTES} minutes.\n\nIf you did not create an account, you can ignore this email.`,
-  }),
-  PASSWORD_RESET: (name, code) => ({
-    subject: 'Your StockSense password reset code',
-    text: `Hi ${name},\n\nYour password reset code is ${code}.\nIt expires in ${OTP_TTL_MINUTES} minutes.\n\nIf you did not ask for this, you can ignore this email.`,
-  }),
-};
-
 /**
  * Creates a new 6-digit code for the user (older codes of the same purpose stop working)
  * and emails it. Does nothing if a code was sent less than 60 seconds ago.
@@ -53,7 +43,10 @@ const issueCode = async (user, purpose) => {
     }),
   ]);
 
-  await sendMail({ to: user.email, ...EMAILS[purpose](user.fullName, code) });
+  await sendMail({
+    to: user.email,
+    ...codeEmail({ purpose, fullName: user.fullName, email: user.email, code, minutes: OTP_TTL_MINUTES }),
+  });
 };
 
 /**

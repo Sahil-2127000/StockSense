@@ -13,9 +13,10 @@ const transporter = config.isSmtpConfigured
   })
   : null;
 
-export const sendMail = async ({ to, subject, text }) => {
+// `html` is optional; `text` is always sent too for apps that do not show HTML
+export const sendMail = async ({ to, subject, text, html }) => {
   if (config.NODE_ENV === 'test') {
-    sentMails.push({ to, subject, text });
+    sentMails.push({ to, subject, text, html });
     return;
   }
 
@@ -25,7 +26,7 @@ export const sendMail = async ({ to, subject, text }) => {
   }
 
   try {
-    await transporter.sendMail({ from: config.MAIL_FROM, to, subject, text });
+    await transporter.sendMail({ from: config.MAIL_FROM, to, subject, text, html });
   } catch (error) {
     if (config.NODE_ENV === 'production') throw error;
     // In development a broken SMTP setup should not block the flow

@@ -29,7 +29,7 @@ describe('POST /api/auth/signup', () => {
     expect(res.headers['set-cookie']).toBeUndefined(); // not logged in yet
     const user = await prisma.user.findUnique({ where: { email: 'sahil@example.com' } });
     expect(user).toMatchObject({ role: 'STAFF', emailVerifiedAt: null });
-    expect(sentMails.at(-1)).toMatchObject({ to: 'sahil@example.com', subject: 'Verify your StockSense email' });
+    expect(sentMails.at(-1)).toMatchObject({ to: 'sahil@example.com', subject: expect.stringMatching(/^\d{6} is your StockSense verification code$/) });
   });
 
   it.each([
