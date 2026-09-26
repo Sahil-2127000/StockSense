@@ -6,10 +6,11 @@
  */
 
 export class ApiError extends Error {
-  constructor(status, message, errors = []) {
+  constructor(status, message, errors = [], code) {
     super(message);
     this.status = status;
     this.errors = errors;
+    this.code = code; // e.g. 'EMAIL_NOT_VERIFIED'
   }
 
   // { email: 'Enter a valid email address', ... } for showing errors under inputs
@@ -48,7 +49,7 @@ export async function request(method, path, { body, query, quiet401 = false } = 
 
   if (!response.ok || payload.success === false) {
     if (response.status === 401 && !quiet401) window.dispatchEvent(new Event(SESSION_EXPIRED));
-    throw new ApiError(response.status, payload.message || `Request failed (${response.status})`, payload.errors || []);
+    throw new ApiError(response.status, payload.message || `Request failed (${response.status})`, payload.errors || [], payload.code);
   }
   return { data: payload.data, meta: payload.meta };
 }

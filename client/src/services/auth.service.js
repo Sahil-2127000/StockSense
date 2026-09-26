@@ -5,6 +5,8 @@ export const authService = {
   me: () => request('GET', '/users/me', { quiet401: true }).then((r) => r.data),
   login: (loginId, password) => data(api.post('/auth/login', { loginId, password })),
   signup: (form) => data(api.post('/auth/signup', form)),
+  verifyEmail: (email, code) => data(api.post('/auth/verify-email', { email, code })),
+  resendVerification: (email) => data(api.post('/auth/resend-verification', { email })),
   logout: () => data(api.post('/auth/logout')),
   forgotPassword: (email) => data(api.post('/auth/forgot-password', { email })),
   verifyOtp: (email, code) => data(api.post('/auth/verify-otp', { email, code })),

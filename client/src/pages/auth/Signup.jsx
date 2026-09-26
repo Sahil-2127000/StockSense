@@ -42,8 +42,9 @@ export default function Signup() {
     setBusy(true);
     setError(null);
     try {
-      await authService.signup({ ...form, loginId: form.loginId.trim(), email: form.email.trim(), fullName: form.fullName.trim() });
-      navigate('/login', { replace: true, state: { message: 'Account created. You can log in now.' } });
+      const result = await authService.signup({ ...form, loginId: form.loginId.trim(), email: form.email.trim(), fullName: form.fullName.trim() });
+      // Next step: confirm the email with the code we just sent
+      navigate(`/verify-email?email=${encodeURIComponent(result.email)}`, { replace: true });
     } catch (err) {
       setErrors(err.fieldErrors ?? {});
       setError(err);
@@ -55,7 +56,7 @@ export default function Signup() {
   return (
     <AuthShell>
       <h1>Create your account</h1>
-      <p className="lead">New accounts start as warehouse staff. A manager can change your role.</p>
+      <p className="lead">We will email you a code to verify your address. New accounts start as warehouse staff.</p>
       <form onSubmit={submit} noValidate style={{ display: 'grid', gap: 12 }}>
         <TextField label="Full name" value={form.fullName} onChange={set('fullName')} error={errors.fullName} autoComplete="name" autoFocus />
         <TextField
@@ -80,7 +81,7 @@ export default function Signup() {
         />
         <FormError error={error} fields={FIELDS} />
         <button type="submit" className="btn pri" disabled={busy}>
-          {busy && <Spinner />} Create account
+          {busy && <Spinner />} Create account &amp; send code
         </button>
       </form>
       <div className="alt">

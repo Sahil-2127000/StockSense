@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FormError, Spinner } from '../../components/Feedback.jsx';
 import { TextField } from '../../components/Fields.jsx';
+import OtpInput from '../../components/OtpInput.jsx';
+import { useCountdown } from '../../hooks/useCountdown.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { authService } from '../../services/auth.service.js';
 import { EMAIL_RE, PASSWORD_RULES } from '../../utils/constants.js';
@@ -25,46 +27,6 @@ function Stepper({ step }) {
   );
 }
 
-// Six single-digit boxes; typing or pasting moves focus along
-function OtpInput({ value, onChange }) {
-  const refs = useRef([]);
-  const digits = value.padEnd(6, ' ').slice(0, 6).split('');
-
-  const setAt = (index, digit) => {
-    const next = digits.map((d, i) => (i === index ? digit : d)).join('').replace(/\s+$/, '');
-    onChange(next.replace(/ /g, ''));
-  };
-
-  return (
-    <div className="otp" onPaste={(e) => {
-      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-      if (pasted) {
-        e.preventDefault();
-        onChange(pasted);
-        refs.current[Math.min(pasted.length, 5)]?.focus();
-      }
-    }}>
-      {digits.map((d, i) => (
-        <input
-          key={i}
-          ref={(el) => (refs.current[i] = el)}
-          inputMode="numeric"
-          maxLength={1}
-          value={d.trim()}
-          aria-label={`Digit ${i + 1}`}
-          autoFocus={i === 0}
-          onChange={(e) => {
-            const digit = e.target.value.replace(/\D/g, '').slice(-1);
-            setAt(i, digit || ' ');
-            if (digit) refs.current[i + 1]?.focus();
-          }}
-          onKeyDown={(e) => e.key === 'Backspace' && !d.trim() && refs.current[i - 1]?.focus()}
-        />
-      ))}
-    </div>
-  );
-}
-
 export default function ForgotPassword() {
   useDocumentTitle('Reset password');
   const navigate = useNavigate();
@@ -77,13 +39,7 @@ export default function ForgotPassword() {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-
-  useEffect(() => {
-    if (cooldown <= 0) return undefined;
-    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cooldown]);
+  const [cooldown, setCooldown] = useCountdown();
 
   const run = async (action) => {
     setBusy(true);

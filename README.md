@@ -10,7 +10,7 @@ Built with **MySQL · Express · React · Node.js** (the MERN idea with a SQL da
 
 | Area | What you can do |
 |---|---|
-| **Authentication** | Sign up (live password rules), log in, OTP password reset by email (6-digit code, 10-min expiry, 60 s resend, 5 attempts), roles: Inventory Manager / Warehouse Staff |
+| **Authentication** | Sign up with email verification (6-digit code), log in, OTP password reset by email (6-digit code, 10-min expiry, 60 s resend, 5 attempts), roles: Inventory Manager / Warehouse Staff |
 | **Dashboard** | KPI cards (products in stock, low / out of stock, pending receipts, pending deliveries, scheduled transfers), receipt & delivery cards, 7-day movement chart, stock value, needs-attention list, recent operations; filter by warehouse, location and category |
 | **Products** | Create / edit with SKU, category, unit, cost, reorder rule and initial stock; stock per location, free-to-use quantity, low-stock status and suggested reorder |
 | **Receipts** | Draft → Ready → Done; validating adds stock |

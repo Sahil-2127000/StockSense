@@ -35,6 +35,11 @@ export default function Login() {
       await login(form.loginId.trim(), form.password);
       navigate(location.state?.from?.pathname ?? '/', { replace: true });
     } catch (err) {
+      if (err.code === 'EMAIL_NOT_VERIFIED') {
+        const email = err.errors?.[0]?.message ?? '';
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`, { state: { message: 'Verify your email to finish setting up your account.' } });
+        return;
+      }
       setError(err);
     } finally {
       setBusy(false);

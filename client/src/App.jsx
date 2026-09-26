@@ -5,6 +5,7 @@ import Layout from './components/Layout.jsx';
 import ForgotPassword from './pages/auth/ForgotPassword.jsx';
 import Login from './pages/auth/Login.jsx';
 import Signup from './pages/auth/Signup.jsx';
+import VerifyEmail from './pages/auth/VerifyEmail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import MoveHistory from './pages/MoveHistory.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -35,6 +36,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
         <Route path="/signup" element={<GuestOnly><Signup /></GuestOnly>} />
+        <Route path="/verify-email" element={<GuestOnly><VerifyEmail /></GuestOnly>} />
         <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
         <Route path="/operations/:id/print" element={<RequireAuth><PrintSlip /></RequireAuth>} />
 
