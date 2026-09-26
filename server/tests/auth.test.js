@@ -21,12 +21,15 @@ beforeEach(async () => {
 });
 
 describe('POST /api/auth/signup', () => {
-  it('creates a STAFF user, lowercases email and never returns the hash', async () => {
+  it('creates an unverified STAFF user and emails a verification code', async () => {
     const res = await request(server).post('/api/auth/signup').send({ ...validSignup, role: 'MANAGER' });
 
     expect(res.status).toBe(201);
-    expect(res.body.data).toMatchObject({ loginId: 'sahil_01', email: 'sahil@example.com', role: 'STAFF' });
-    expect(JSON.stringify(res.body)).not.toContain('passwordHash');
+    expect(res.body.data).toEqual({ email: 'sahil@example.com', verificationRequired: true });
+    expect(res.headers['set-cookie']).toBeUndefined(); // not logged in yet
+    const user = await prisma.user.findUnique({ where: { email: 'sahil@example.com' } });
+    expect(user).toMatchObject({ role: 'STAFF', emailVerifiedAt: null });
+    expect(sentMails.at(-1)).toMatchObject({ to: 'sahil@example.com', subject: expect.stringMatching(/^\d{6} is your StockSense verification code$/) });
   });
 
   it.each([
@@ -52,6 +55,72 @@ describe('POST /api/auth/signup', () => {
 
     expect(res.status).toBe(409);
     expect(fieldsOf(res)).toEqual(expect.arrayContaining(['loginId', 'email']));
+  });
+});
+
+describe('email verification', () => {
+  const codeFromMail = () => sentMails.at(-1).text.match(/\b(\d{6})\b/)[1];
+
+  it('sign up → verify code → logged in', async () => {
+    await request(server).post('/api/auth/signup').send(validSignup);
+
+    const wrong = await request(server).post('/api/auth/verify-email').send({ email: validSignup.email, code: codeFromMail() === '000000' ? '111111' : '000000' });
+    const res = await request(server).post('/api/auth/verify-email').send({ email: validSignup.email, code: codeFromMail() });
+
+    expect(wrong.status).toBe(400);
+    expect(wrong.body.errors[0].message).toMatch(/4 attempt/);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ loginId: 'sahil_01' });
+    expect(res.headers['set-cookie'][0]).toMatch(/token=.+HttpOnly/i);
+    expect((await prisma.user.findUnique({ where: { loginId: 'sahil_01' } })).emailVerifiedAt).not.toBeNull();
+  });
+
+  it('blocks login until verified and sends a fresh code', async () => {
+    const user = await createUser({ verified: false });
+
+    const res = await request(server).post('/api/auth/login').send({ loginId: user.loginId, password: TEST_PASSWORD });
+
+    expect(res.status).toBe(403);
+    expect(res.body).toMatchObject({ code: 'EMAIL_NOT_VERIFIED', errors: [{ field: 'email', message: user.email }] });
+    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(sentMails.at(-1).to).toBe(user.email);
+  });
+
+  it('a wrong password on an unverified account still gets the generic error', async () => {
+    const user = await createUser({ verified: false });
+    const res = await request(server).post('/api/auth/login').send({ loginId: user.loginId, password: 'Wrong@12345' });
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBeUndefined();
+  });
+
+  it('a password-reset code cannot verify an email', async () => {
+    const user = await createUser({ verified: false });
+    await request(server).post('/api/auth/forgot-password').send({ email: user.email });
+
+    const res = await request(server).post('/api/auth/verify-email').send({ email: user.email, code: codeFromMail() });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('resend is silent for unknown or verified emails and limited to one per minute', async () => {
+    const pending = await createUser({ verified: false });
+    const verified = await createUser();
+
+    for (const email of ['ghost@test.local', verified.email, pending.email, pending.email]) {
+      const res = await request(server).post('/api/auth/resend-verification').send({ email });
+      expect(res.status).toBe(200);
+    }
+    expect(sentMails.map((m) => m.to)).toEqual([pending.email]);
+  });
+
+  it('resetting the password also verifies the email', async () => {
+    const user = await createUser({ verified: false });
+    await request(server).post('/api/auth/forgot-password').send({ email: user.email });
+    const { body } = await request(server).post('/api/auth/verify-otp').send({ email: user.email, code: codeFromMail() });
+    await request(server).post('/api/auth/reset-password').send({ resetToken: body.data.resetToken, password: 'Brand@New123', confirmPassword: 'Brand@New123' });
+
+    const login = await request(server).post('/api/auth/login').send({ loginId: user.loginId, password: 'Brand@New123' });
+    expect(login.status).toBe(200);
   });
 });
 

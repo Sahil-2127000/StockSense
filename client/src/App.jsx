@@ -1,56 +1,69 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import IconSprite from './components/IconSprite';
-import ReceiptsList from './pages/receipts/ReceiptsList';
-import ReceiptForm from './pages/receipts/ReceiptForm';
-import ReceiptsKanban from './pages/receipts/ReceiptsKanban';
-import ReceiptSlip from './pages/receipts/ReceiptSlip';
-import TransferForm from './pages/transfers/TransferForm';
-import AdjustmentForm from './pages/adjustments/AdjustmentForm';
-import MoveHistory from './pages/history/MoveHistory';
-import Profile from './pages/profile/Profile';
-import Locations from './pages/settings/Locations';
-import Warehouses from './pages/settings/Warehouses';
-import './styles/theme.css';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { GuestOnly, ManagerOnly, RequireAuth } from './components/Guards.jsx';
+import IconSprite from './components/IconSprite.jsx';
+import Layout from './components/Layout.jsx';
+import ForgotPassword from './pages/auth/ForgotPassword.jsx';
+import Login from './pages/auth/Login.jsx';
+import Signup from './pages/auth/Signup.jsx';
+import VerifyEmail from './pages/auth/VerifyEmail.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import MoveHistory from './pages/MoveHistory.jsx';
+import NotFound from './pages/NotFound.jsx';
+import AdjustmentDetail from './pages/operations/AdjustmentDetail.jsx';
+import Adjustments from './pages/operations/Adjustments.jsx';
+import OperationForm from './pages/operations/OperationForm.jsx';
+import OperationsList from './pages/operations/OperationsList.jsx';
+import PrintSlip from './pages/operations/PrintSlip.jsx';
+import Products from './pages/Products.jsx';
+import Profile from './pages/Profile.jsx';
+import Categories from './pages/settings/Categories.jsx';
+import Contacts from './pages/settings/Contacts.jsx';
+import Locations from './pages/settings/Locations.jsx';
+import Warehouses from './pages/settings/Warehouses.jsx';
+import Stock from './pages/Stock.jsx';
+import Users from './pages/Users.jsx';
 
-// Simple placeholder for pages that aren't built yet — swap these out
-// one by one as you build each screen (DeliveriesList, etc.)
-function Placeholder({ title }) {
-  return (
-    <div className="view">
-      <div className="ph"><h1>{title}</h1></div>
-      <div className="panel" style={{ padding: 24, color: 'var(--muted)' }}>
-        Not built yet.
-      </div>
-    </div>
-  );
-}
+const OPERATION_ROUTES = [
+  ['receipts', 'RECEIPT'],
+  ['deliveries', 'DELIVERY'],
+  ['transfers', 'TRANSFER'],
+];
 
-function App() {
+export default function App() {
   return (
-    <BrowserRouter>
+    <>
       <IconSprite />
       <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Placeholder title="Dashboard" />} />
-          <Route path="/products" element={<Placeholder title="Products" />} />
-          <Route path="/stock" element={<Placeholder title="Stock" />} />
-          <Route path="/receipts" element={<div className="view"><ReceiptsList /></div>} />
-          <Route path="/receipts/:id" element={<ReceiptForm />} />
-          <Route path="/receipts-kanban" element={<ReceiptsKanban />} />
-          <Route path="/receipts/:id/print" element={<ReceiptSlip />} />
-          <Route path="/deliveries" element={<Placeholder title="Deliveries" />} />
-          <Route path="/transfers" element={<TransferForm />} />
-          <Route path="/adjustments" element={<AdjustmentForm />} />
-          <Route path="/move-history" element={<MoveHistory />} />
-          <Route path="/warehouses" element={<Warehouses />} />
-          <Route path="/locations" element={<Locations />} />
-          <Route path="/profile" element={<Profile />} />
+        <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
+        <Route path="/signup" element={<GuestOnly><Signup /></GuestOnly>} />
+        <Route path="/verify-email" element={<GuestOnly><VerifyEmail /></GuestOnly>} />
+        <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
+        <Route path="/operations/:id/print" element={<RequireAuth><PrintSlip /></RequireAuth>} />
+
+        <Route element={<RequireAuth><Layout /></RequireAuth>}>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="stock" element={<Stock />} />
+          {OPERATION_ROUTES.map(([path, type]) => (
+            <Route key={path} path={path}>
+              {/* key={type} remounts the page when switching between types */}
+              <Route index element={<OperationsList key={type} type={type} />} />
+              <Route path=":id" element={<OperationForm key={type} type={type} />} />
+            </Route>
+          ))}
+          <Route path="adjustments" element={<Adjustments />} />
+          <Route path="adjustments/:id" element={<AdjustmentDetail />} />
+          <Route path="move-history" element={<MoveHistory />} />
+          <Route path="warehouses" element={<Warehouses />} />
+          <Route path="locations" element={<Locations />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="contacts" element={<Contacts />} />
+          <Route path="users" element={<ManagerOnly><Users /></ManagerOnly>} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="dashboard" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
-
-export default App;

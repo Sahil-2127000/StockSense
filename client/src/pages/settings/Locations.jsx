@@ -1,79 +1,48 @@
-import React, { useState } from 'react';
-import ListView from '../../components/ListView';
-import Icon from '../../components/Icon';
+import { useState } from 'react';
+import CrudPage from '../../components/CrudPage.jsx';
+import { useWarehouse } from '../../context/WarehouseContext.jsx';
+import { locationsService } from '../../services/crud.service.js';
 
-/**
- * Locations — rooms, racks and floors inside each warehouse.
- * Selecting a row loads it into the edit form below the table.
- */
+const TYPE_LABEL = { INTERNAL: 'Warehouse', VENDOR: 'Vendors (virtual)', CUSTOMER: 'Customers (virtual)', ADJUSTMENT: 'Adjustment (virtual)' };
 
-const LOCATIONS = [
-  { id: 'l1', name: 'Main Store', code: 'Stock1', wh: 'WH', path: 'WH/Stock1' },
-  { id: 'l2', name: 'Rack B', code: 'Stock2', wh: 'WH', path: 'WH/Stock2' },
-  { id: 'l3', name: 'Production Floor', code: 'Prod', wh: 'WH', path: 'WH/Prod' },
-  { id: 'l4', name: 'Branch Store', code: 'Stock1', wh: 'BR', path: 'BR/Stock1' },
-];
-
-const columns = [
-  { key: 'name', label: 'Name', render: r => <b>{r.name}</b> },
-  { key: 'code', label: 'Short code', render: r => <span className="mono">{r.code}</span> },
-  { key: 'wh', label: 'Warehouse', render: r => (
-    <span className="whsel" style={{ height: 'auto', border: 0, padding: 0 }}><span className="tag">{r.wh}</span></span>
-  ) },
-  { key: 'path', label: 'Full path', render: r => <span className="mono">{r.path}</span> },
-];
-
-export default function Locations({ locations = LOCATIONS, onSave, onDiscard, onNew }) {
-  const [selected, setSelected] = useState(locations[2]);
-  const [name, setName] = useState(selected.name);
-  const [code, setCode] = useState(selected.code);
-
-  const selectRow = row => {
-    setSelected(row);
-    setName(row.name);
-    setCode(row.code);
+export default function Locations() {
+  const { warehouses, warehouseId } = useWarehouse();
+  const [type, setType] = useState('INTERNAL');
+  const config = {
+    singular: 'location',
+    plural: 'Locations',
+    sub: 'Rooms, racks and floors inside each warehouse. The full path is built from the warehouse code.',
+    icon: 'pin',
+    service: locationsService,
+    searchPlaceholder: 'Name or path',
+    title: (r) => r.fullPath ?? r.name,
+    canEdit: (r) => r.type === 'INTERNAL',
+    canDelete: (r) => r.type === 'INTERNAL',
+    columns: [
+      { key: 'name', label: 'Name', render: (r) => <b>{r.name}</b> },
+      { key: 'code', label: 'Short code', render: (r) => <span className="mono">{r.shortCode}</span> },
+      { key: 'wh', label: 'Warehouse', render: (r) => r.warehouse?.name ?? <span className="muted">System</span> },
+      { key: 'path', label: 'Full path', render: (r) => <span className="mono">{r.fullPath}</span> },
+      { key: 'type', label: 'Type', render: (r) => <span className={`pill ${r.type === 'INTERNAL' ? 'ready' : 'draft'}`}>{TYPE_LABEL[r.type]}</span> },
+    ],
+    fields: [
+      { name: 'warehouseId', label: 'Warehouse', type: 'select', required: true, createOnly: true, options: warehouses.map((w) => ({ value: w.id, label: `${w.shortCode} · ${w.name}` })) },
+      { name: 'name', label: 'Name', required: true, maxLength: 60, validate: (v) => v.length < 2 && 'At least 2 characters' },
+      { name: 'shortCode', label: 'Short code', required: true, createOnly: true, mono: true, maxLength: 10, help: 'e.g. RackA. Becomes WH/RackA and cannot change later.', validate: (v) => !/^[A-Za-z0-9-]{1,10}$/.test(v) && '1–10 letters, digits or dashes' },
+    ],
+    toForm: (r) => ({ warehouseId: r?.warehouseId ?? warehouseId ?? '', name: r?.name ?? '', shortCode: r?.shortCode ?? '' }),
+    toBody: (f, { isNew }) => (isNew ? { warehouseId: Number(f.warehouseId), name: f.name.trim(), shortCode: f.shortCode.trim() } : { name: f.name.trim() }),
   };
-
   return (
-    <main className="view">
-      <div className="ph">
-        <h1>Locations</h1>
-        <div className="sp" />
-        <span className="btn pri" onClick={onNew}><Icon name="plus" />New location</span>
-      </div>
-
-      <ListView
-        columns={columns}
-        rows={locations.map(l => ({ ...l, rowClassName: l.id === selected.id ? 'hl' : undefined }))}
-        onRowClick={selectRow}
-      />
-
-      <div className="doc">
-        <div className="doc-body">
-          <div className="grid2">
-            <div className="fld">
-              <label>Name</label>
-              <div className="inp">
-                <input value={name} onChange={e => setName(e.target.value)} style={{ border: 0, background: 'transparent', width: '100%', font: 'inherit' }} />
-              </div>
-            </div>
-            <div className="fld">
-              <label>Short code</label>
-              <div className="inp mono">
-                <input value={code} onChange={e => setCode(e.target.value)} style={{ border: 0, background: 'transparent', width: '100%', font: 'inherit' }} />
-              </div>
-            </div>
-          </div>
-          <div className="fld">
-            <label>Warehouse</label>
-            <div className="inp">WH · Main Warehouse<Icon name="chev" className="i end" /></div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <span className="btn" onClick={onDiscard}>Discard</span>
-            <span className="btn pri" onClick={() => onSave?.({ ...selected, name, code })}>Save location</span>
-          </div>
-        </div>
-      </div>
-    </main>
+    <CrudPage
+      config={config}
+      filterValues={{ warehouseId: type === 'INTERNAL' ? warehouseId : undefined, type: type || undefined }}
+      filters={
+        <select className="inp sm" style={{ width: 'auto' }} value={type} onChange={(e) => setType(e.target.value)} aria-label="Location type">
+          <option value="INTERNAL">Warehouse locations</option>
+          <option value="">All, including virtual</option>
+        </select>
+      }
+    />
   );
 }

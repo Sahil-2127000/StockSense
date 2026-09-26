@@ -3,8 +3,19 @@ import { AUTH_COOKIE, authCookieOptions } from '../utils/token.js';
 import * as authService from '../services/auth.service.js';
 
 export const signup = async (req, res) => {
-  const user = await authService.signup(req.validated.body);
-  sendSuccess(res, user, 201);
+  // Account created but not verified: the client shows the code screen next
+  sendSuccess(res, await authService.signup(req.validated.body), 201);
+};
+
+export const verifyEmail = async (req, res) => {
+  const { user, token } = await authService.verifyEmail(req.validated.body);
+  res.cookie(AUTH_COOKIE, token, authCookieOptions(token));
+  sendSuccess(res, user);
+};
+
+export const resendVerification = async (req, res) => {
+  await authService.resendVerification(req.validated.body);
+  sendSuccess(res, { message: 'If this account still needs verification, a new code has been sent.' });
 };
 
 export const login = async (req, res) => {

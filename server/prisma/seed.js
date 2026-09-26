@@ -102,6 +102,7 @@ async function main() {
       email: 'purvika_2315185@gndec.ac.in',
       fullName: 'Purvika Jain',
       passwordHash,
+      emailVerifiedAt: new Date(),
       role: 'MANAGER',
     },
   });
@@ -112,6 +113,7 @@ async function main() {
       email: 'aman.shaikh@stocksense.in',
       fullName: 'Aman Shaikh',
       passwordHash,
+      emailVerifiedAt: new Date(),
       role: 'STAFF',
     },
   });

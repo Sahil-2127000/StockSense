@@ -27,5 +27,6 @@ export const movesQuery = paginationQuery.extend({
 
 export const dashboardQuery = z.object({
   warehouseId: optionalId,
+  locationId: optionalId,
   categoryId: optionalId,
 });

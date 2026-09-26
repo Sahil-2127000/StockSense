@@ -24,6 +24,12 @@ export const loginSchema = z.object({
 
 export const forgotPasswordSchema = z.object({ email: emailField });
 
+export const resendVerificationSchema = z.object({ email: emailField });
+
+const codeField = z.string({ error: 'Code is required' }).trim().regex(/^\d{6}$/, 'Code must be 6 digits');
+
+export const verifyEmailSchema = z.object({ email: emailField, code: codeField });
+
 export const verifyOtpSchema = z.object({
   email: emailField,
   code: z.string({ error: 'Code is required' }).trim().regex(/^\d{6}$/, 'Code must be 6 digits'),

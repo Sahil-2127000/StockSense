@@ -1,16 +1,12 @@
-import React from 'react';
+import { STATUS, STOCK_STATUS } from '../utils/constants.js';
 
-const LABELS = {
-  draft: 'Draft',
-  waiting: 'Waiting',
-  ready: 'Ready',
-  done: 'Done',
-  cancel: 'Cancelled',
-  ok: 'In stock',
-  low: 'Low stock',
-  out: 'Out of stock',
-};
+// Operation status (DRAFT…CANCELLED) or stock status (OK / LOW / OUT)
+export default function StatusPill({ status, stock = false }) {
+  const meta = (stock ? STOCK_STATUS : STATUS)[status];
+  if (!meta) return null;
+  return <span className={`pill ${meta.pill}`}>{meta.label}</span>;
+}
 
-export default function StatusPill({ status, label }) {
-  return <span className={`pill ${status}`}>{label ?? LABELS[status] ?? status}</span>;
+export function LateTag({ late }) {
+  return late ? <span className="late" /> : null;
 }

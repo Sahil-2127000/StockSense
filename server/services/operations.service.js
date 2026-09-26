@@ -28,7 +28,8 @@ const NEEDS_STOCK = ['DELIVERY', 'TRANSFER'];
 const locationSelect = { select: { id: true, name: true, fullPath: true, type: true, warehouseId: true } };
 
 const include = {
-  contact: { select: { id: true, name: true, type: true } },
+  // Address / email / phone are shown on the form ("Delivery address", "Receive from")
+  contact: { select: { id: true, name: true, type: true, email: true, phone: true, address: true } },
   sourceLocation: locationSelect,
   destLocation: locationSelect,
   responsible: { select: { id: true, loginId: true, fullName: true } },

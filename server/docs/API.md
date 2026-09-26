@@ -32,12 +32,16 @@ Every list accepts `?page=1&limit=20` (max 100) and `?q=` for search, and return
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/signup` | `loginId, email, fullName, password, confirmPassword` | 201 → user. New accounts are always STAFF |
-| POST | `/login` | `loginId, password` | Sets cookie, returns user. Wrong details → 401 `Invalid Login Id or Password`. Max 10 tries / 15 min |
+| POST | `/signup` | `loginId, email, fullName, password, confirmPassword` | 201 → `{ email, verificationRequired: true }`. Creates an **unverified** STAFF account and emails a 6-digit code |
+| POST | `/verify-email` | `email, code` | Verifies the email and logs the user in (sets cookie, returns user) |
+| POST | `/resend-verification` | `email` | Always 200. New code at most once per 60 s |
+| POST | `/login` | `loginId, password` | Sets cookie, returns user. Wrong details → 401 `Invalid Login Id or Password`. Correct password but unverified email → 403 with `code: "EMAIL_NOT_VERIFIED"` and the email in `errors[0].message` (a fresh code is sent). Max 10 tries / 15 min |
 | POST | `/logout` | — | Clears cookie |
 | POST | `/forgot-password` | `email` | Always 200 (never reveals if the email exists). Sends a 6-digit code, valid 10 min, one per 60 s |
 | POST | `/verify-otp` | `email, code` | → `{ resetToken }` (valid 15 min). 5 wrong tries locks the code |
-| POST | `/reset-password` | `resetToken, password, confirmPassword` | Sets the new password; the token works once |
+| POST | `/reset-password` | `resetToken, password, confirmPassword` | Sets the new password; the token works once. Also marks the email verified |
+
+Sign-up codes and reset codes are separate: a code only works for the purpose it was sent for.
 
 **Validation rules**
 - `loginId`: 6–12 characters, letters / numbers / underscore, unique
@@ -168,6 +172,7 @@ References are generated per warehouse and type: `WH/IN/0001`, `WH/OUT/0001`, `W
 - RECEIPT needs `contactId` (supplier) + `destLocationId`; DELIVERY needs `contactId` (customer) + `sourceLocationId`; TRANSFER needs both locations (different).
 - `lines`: 1–100 products, each product once, `quantity > 0` (max 3 decimals).
 - `scheduleDate` defaults to now.
+- Responses include `contact: { id, name, type, email, phone, address }`, so forms can show the delivery / supplier address.
 
 **Availability (open deliveries / transfers)**
 ```json
@@ -211,7 +216,7 @@ Filters: `?productId=&locationId=&warehouseId=&type=RECEIPT,DELIVERY&direction=I
 `direction`: `IN` (arrives from a vendor / adjustment gain, show green), `OUT` (leaves to a customer / adjustment loss, show red), `INTERNAL` (between warehouse locations).
 
 ### Dashboard — `GET /api/dashboard`
-Everything for the landing page in one call. Filters: `?warehouseId=&categoryId=`
+Everything for the landing page in one call. Filters: `?warehouseId=&locationId=&categoryId=` (combine freely; `locationId` narrows every section to one location)
 
 | Field | Content |
 |---|---|
