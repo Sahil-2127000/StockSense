@@ -92,3 +92,9 @@ server/
 - Before starting work: `git checkout main && git pull`, then merge `main` into your branch.
 - Never force-push to shared branches. Never commit `.env`, `.env.test` or `node_modules`.
 - Schema changes: edit `schema.prisma`, run `npx prisma migrate dev --name <change>`, and commit the new migration folder.
+
+## Testing
+- Tests use a separate database. Create `server/.env.test` as a copy of `.env` with the database name changed to `stocksense_test` and `NODE_ENV=test` (it is git-ignored).
+- `npm test` applies migrations to the test database, and every test file empties the tables with `resetDatabase()` from `tests/helpers/db.js`.
+- Use `createUser()` / `loginAs(role)` from `tests/helpers/auth.js` for authenticated requests.
+- Emails are not sent in tests; read them from `sentMails` in `src/utils/mailer.js`.
