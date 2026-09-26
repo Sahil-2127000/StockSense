@@ -32,7 +32,7 @@ erDiagram
 ### 3.1 Authentication & User Management
 * **`users`**: System users (Managers and Warehouse Staff).
   * `id` (Int, PK, autoincrement)
-  * `loginId` (VarChar 12, Unique) — 6 to 12 alphanumeric characters.
+  * `loginId` (VarChar 12, Unique) — 6 to 12 characters: letters, numbers or underscore.
   * `email` (VarChar, Unique) — User email for login and OTP dispatch.
   * `passwordHash` (String) — Secure bcrypt password hash.
   * `fullName` (String) — Display name.
