@@ -3,6 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import config from './config/env.js';
+import errorHandler from './middlewares/errorHandler.js';
+import ApiError from './utils/ApiError.js';
 
 const app = express();
 
@@ -26,22 +28,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // 404 Handler for undefined routes
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-  });
+app.use((req, res, next) => {
+  next(new ApiError(404, `Route not found: ${req.method} ${req.originalUrl}`));
 });
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  res.status(statusCode).json({
-    success: false,
-    message: err.message || 'Internal Server Error',
-    ...(config.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-});
+// Central Error Handler (registered last)
+app.use(errorHandler);
 
 export { app };
 export default app;
