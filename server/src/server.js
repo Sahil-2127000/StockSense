@@ -5,6 +5,15 @@ import prisma from './config/db.js';
 
 const server = http.createServer(app);
 
+// Connect to MySQL before accepting requests, so a bad DATABASE_URL fails fast at startup
+try {
+  await prisma.$connect();
+  console.log('🗄️  Connected to MySQL');
+} catch (error) {
+  console.error('❌ Could not connect to MySQL. Check DATABASE_URL in .env:', error.message);
+  process.exit(1);
+}
+
 server.listen(config.PORT, () => {
   console.log(`🚀 StockSense Server running in ${config.NODE_ENV} mode on port ${config.PORT}`);
   console.log(`👉 Health check: http://localhost:${config.PORT}/api/health`);

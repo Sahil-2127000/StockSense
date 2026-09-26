@@ -10,7 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
     "test": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "prisma generate"
   },
   "keywords": [
     "inventory",
