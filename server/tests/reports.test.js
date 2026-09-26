@@ -139,6 +139,20 @@ describe('GET /api/dashboard', () => {
     expect(kpis).toMatchObject({ totalProductsInStock: 1, lowStock: 1, outOfStock: 1 });
   });
 
+  it('filters by location', async () => {
+    const { data } = (await staff.get(`/api/dashboard?locationId=${rack.id}`)).body;
+
+    // Only the rack: 27 kg of rod, the transfer in and the 3 kg loss out; the waiting delivery is from WH/Stock
+    expect(data.kpis).toMatchObject({ totalProductsInStock: 1, pendingDeliveries: 0, waitingDeliveries: 0 });
+    expect(data.stockValue).toEqual({ units: 27, value: 27 * 85 });
+    expect(data.movement.at(-1)).toMatchObject({ incoming: 0, outgoing: 3, internal: 30 });
+    expect(data.recentOperations.map((o) => o.type).sort()).toEqual(['ADJUSTMENT', 'TRANSFER']);
+  });
+
+  it('rejects an invalid location id', async () => {
+    expect((await staff.get('/api/dashboard?locationId=abc')).status).toBe(400);
+  });
+
   it('shows recent operations', async () => {
     const { recentOperations } = (await staff.get('/api/dashboard')).body.data;
     expect(recentOperations).toHaveLength(6); // 2 receipts, 2 deliveries, 1 transfer, 1 adjustment

@@ -151,7 +151,7 @@ const openapi = {
         params: [...paging, idFilter('productId'), idFilter('locationId'), idFilter('warehouseId'), q('type'), q('direction', { type: 'string', enum: ['IN', 'OUT', 'INTERNAL'] }), q('from'), q('to')],
       }),
     },
-    '/dashboard': { get: op('Reports', 'Dashboard: KPIs, value, 7-day movement, alerts', { params: [idFilter('warehouseId'), idFilter('categoryId')] }) },
+    '/dashboard': { get: op('Reports', 'Dashboard: KPIs, value, 7-day movement, alerts', { params: [idFilter('warehouseId'), idFilter('locationId'), idFilter('categoryId')] }) },
   },
 };
 

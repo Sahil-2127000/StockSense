@@ -129,6 +129,20 @@ describe('deliveries', () => {
     expect(secondConfirm.body.data.availability[0].available).toBe(2);
   });
 
+  it('returns the customer address for the delivery form', async () => {
+    await prisma.contact.update({ where: { id: customer.id }, data: { address: 'SCO 41, Sector 17-C, Chandigarh', phone: '+91-98200-33445' } });
+    const { body } = await delivery([{ productId: chair.id, quantity: 1 }]);
+
+    const detail = await staff.get(`/api/operations/${body.data.id}`);
+
+    expect(detail.body.data.contact).toMatchObject({
+      name: customer.name,
+      type: 'CUSTOMER',
+      address: 'SCO 41, Sector 17-C, Chandigarh',
+      phone: '+91-98200-33445',
+    });
+  });
+
   it('needs a customer', async () => {
     const res = await delivery([{ productId: chair.id, quantity: 1 }], { contactId: supplier.id });
     expect(res.body.errors[0].field).toBe('contactId');

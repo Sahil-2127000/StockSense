@@ -168,6 +168,7 @@ References are generated per warehouse and type: `WH/IN/0001`, `WH/OUT/0001`, `W
 - RECEIPT needs `contactId` (supplier) + `destLocationId`; DELIVERY needs `contactId` (customer) + `sourceLocationId`; TRANSFER needs both locations (different).
 - `lines`: 1–100 products, each product once, `quantity > 0` (max 3 decimals).
 - `scheduleDate` defaults to now.
+- Responses include `contact: { id, name, type, email, phone, address }`, so forms can show the delivery / supplier address.
 
 **Availability (open deliveries / transfers)**
 ```json
@@ -211,7 +212,7 @@ Filters: `?productId=&locationId=&warehouseId=&type=RECEIPT,DELIVERY&direction=I
 `direction`: `IN` (arrives from a vendor / adjustment gain, show green), `OUT` (leaves to a customer / adjustment loss, show red), `INTERNAL` (between warehouse locations).
 
 ### Dashboard — `GET /api/dashboard`
-Everything for the landing page in one call. Filters: `?warehouseId=&categoryId=`
+Everything for the landing page in one call. Filters: `?warehouseId=&locationId=&categoryId=` (combine freely; `locationId` narrows every section to one location)
 
 | Field | Content |
 |---|---|

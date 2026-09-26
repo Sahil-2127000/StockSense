@@ -16,15 +16,21 @@ const startOfToday = () => {
 const localDay = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-const inWarehouse = (warehouseId) =>
-  warehouseId ? { OR: [{ sourceLocation: { warehouseId } }, { destLocation: { warehouseId } }] } : {};
+// Operations touching the selected warehouse and/or location (either side of the move)
+const inScope = ({ warehouseId, locationId }) => ({
+  AND: [
+    warehouseId ? { OR: [{ sourceLocation: { warehouseId } }, { destLocation: { warehouseId } }] } : {},
+    locationId ? { OR: [{ sourceLocationId: locationId }, { destLocationId: locationId }] } : {},
+  ],
+});
 
-const countOps = (type, warehouseId, extra = {}) =>
-  prisma.operation.count({ where: { AND: [{ type, status: { in: OPEN }, ...extra }, inWarehouse(warehouseId)] } });
+const countOps = (type, scope, extra = {}) =>
+  prisma.operation.count({ where: { AND: [{ type, status: { in: OPEN }, ...extra }, inScope(scope)] } });
 
 // The five KPI cards from the problem statement (+ late counts for the badges)
-const kpis = async ({ warehouseId, categoryId }) => {
-  const filter = { warehouseId, categoryId, activeOnly: true };
+const kpis = async ({ warehouseId, locationId, categoryId }) => {
+  const filter = { warehouseId, locationId, categoryId, activeOnly: true };
+  const scope = { warehouseId, locationId };
   const late = { scheduleDate: { lt: startOfToday() } };
 
   const [inStock, low, out, receipts, deliveries, transfers, lateReceipts, lateDeliveries, waitingDeliveries] =
@@ -32,12 +38,12 @@ const kpis = async ({ warehouseId, categoryId }) => {
       productIdsByStatus('IN_STOCK', filter),
       productIdsByStatus('LOW', filter),
       productIdsByStatus('OUT', filter),
-      countOps('RECEIPT', warehouseId),
-      countOps('DELIVERY', warehouseId),
-      countOps('TRANSFER', warehouseId),
-      countOps('RECEIPT', warehouseId, late),
-      countOps('DELIVERY', warehouseId, late),
-      countOps('DELIVERY', warehouseId, { status: 'WAITING' }),
+      countOps('RECEIPT', scope),
+      countOps('DELIVERY', scope),
+      countOps('TRANSFER', scope),
+      countOps('RECEIPT', scope, late),
+      countOps('DELIVERY', scope, late),
+      countOps('DELIVERY', scope, { status: 'WAITING' }),
     ]);
 
   return {
@@ -55,7 +61,7 @@ const kpis = async ({ warehouseId, categoryId }) => {
 
 // Units moved in / out / between locations per day for the last 7 days.
 // Timestamps are stored in UTC, so they are shifted to the server's local time before grouping by day.
-const movement = async ({ warehouseId, categoryId }) => {
+const movement = async ({ warehouseId, locationId, categoryId }) => {
   const since = startOfToday();
   since.setDate(since.getDate() - (DAYS - 1));
   const offsetMinutes = -new Date().getTimezoneOffset();
@@ -71,6 +77,7 @@ const movement = async ({ warehouseId, categoryId }) => {
     JOIN products p ON p.id = sm.productId
     WHERE sm.createdAt >= ${since}
       ${warehouseId ? Prisma.sql`AND (fl.warehouseId = ${warehouseId} OR tl.warehouseId = ${warehouseId})` : Prisma.empty}
+      ${locationId ? Prisma.sql`AND (fl.id = ${locationId} OR tl.id = ${locationId})` : Prisma.empty}
       ${categoryId ? Prisma.sql`AND p.categoryId = ${categoryId}` : Prisma.empty}
     GROUP BY day`;
 
@@ -90,8 +97,9 @@ const movement = async ({ warehouseId, categoryId }) => {
 };
 
 // "Needs attention": low / out of stock products, waiting deliveries with their shortage, late operations
-const attention = async ({ warehouseId, categoryId }) => {
-  const filter = { warehouseId, categoryId, activeOnly: true };
+const attention = async ({ warehouseId, locationId, categoryId }) => {
+  const filter = { warehouseId, locationId, categoryId, activeOnly: true };
+  const scope = { warehouseId, locationId };
   const [lowIds, outIds] = await Promise.all([productIdsByStatus('LOW', filter), productIdsByStatus('OUT', filter)]);
   const ids = [...outIds, ...lowIds];
 
@@ -100,15 +108,15 @@ const attention = async ({ warehouseId, categoryId }) => {
       where: { id: { in: ids } },
       select: { id: true, name: true, sku: true, uom: true, reorderRule: { select: { minQty: true, maxQty: true } } },
     }),
-    getStockSummary(ids, { warehouseId }),
+    getStockSummary(ids, scope),
     prisma.operation.findMany({
-      where: { AND: [{ type: { in: ['DELIVERY', 'TRANSFER'] }, status: 'WAITING' }, inWarehouse(warehouseId)] },
+      where: { AND: [{ type: { in: ['DELIVERY', 'TRANSFER'] }, status: 'WAITING' }, inScope(scope)] },
       include: { contact: { select: { name: true } }, lines: { include: { product: { select: { id: true, name: true, uom: true } } } } },
       orderBy: { scheduleDate: 'asc' },
       take: 5,
     }),
     prisma.operation.findMany({
-      where: { AND: [{ status: { in: OPEN }, scheduleDate: { lt: startOfToday() } }, inWarehouse(warehouseId)] },
+      where: { AND: [{ status: { in: OPEN }, scheduleDate: { lt: startOfToday() } }, inScope(scope)] },
       select: { id: true, reference: true, type: true, status: true, scheduleDate: true, contact: { select: { name: true } } },
       orderBy: { scheduleDate: 'asc' },
       take: 5,
@@ -149,9 +157,9 @@ const attention = async ({ warehouseId, categoryId }) => {
   return { lowStock, waitingOperations, lateOperations: late };
 };
 
-const recentOperations = ({ warehouseId }) =>
+const recentOperations = ({ warehouseId, locationId }) =>
   prisma.operation.findMany({
-    where: inWarehouse(warehouseId),
+    where: inScope({ warehouseId, locationId }),
     select: {
       id: true,
       reference: true,
@@ -166,7 +174,7 @@ const recentOperations = ({ warehouseId }) =>
     take: 8,
   });
 
-// Everything the dashboard needs in one call; filters: warehouseId, categoryId
+// Everything the dashboard needs in one call; filters: warehouseId, locationId, categoryId
 export const getDashboard = async (filters) => {
   const [cards, value, chart, needsAttention, recent] = await Promise.all([
     kpis(filters),
