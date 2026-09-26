@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import app from '../src/app.js';
+import { server } from './helpers/server.js';
 import { resetDatabase } from './helpers/db.js';
 import { createUser, loginAs, TEST_PASSWORD } from './helpers/auth.js';
 
@@ -8,21 +8,21 @@ beforeEach(resetDatabase);
 
 describe('authentication middleware', () => {
   it('returns 401 without a login', async () => {
-    const res = await request(app).get('/api/users/me');
+    const res = await request(server).get('/api/users/me');
     expect(res.status).toBe(401);
   });
 
   it('returns 401 for a forged token', async () => {
-    const res = await request(app).get('/api/users/me').set('Authorization', 'Bearer not.a.jwt');
+    const res = await request(server).get('/api/users/me').set('Authorization', 'Bearer not.a.jwt');
     expect(res.status).toBe(401);
   });
 
   it('accepts a Bearer token as well as the cookie', async () => {
     const user = await createUser();
-    const login = await request(app).post('/api/auth/login').send({ loginId: user.loginId, password: TEST_PASSWORD });
+    const login = await request(server).post('/api/auth/login').send({ loginId: user.loginId, password: TEST_PASSWORD });
     const token = login.headers['set-cookie'][0].match(/token=([^;]+)/)[1];
 
-    const res = await request(app).get('/api/users/me').set('Authorization', `Bearer ${token}`);
+    const res = await request(server).get('/api/users/me').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(user.id);

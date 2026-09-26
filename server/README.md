@@ -20,21 +20,20 @@ Backend API server for **StockSense**, a modular Inventory Management System bui
 
 ```
 server/
-├── docs/                # Architecture docs & team context (CONTEXT.md)
-├── prisma/              # Prisma schema, migrations, and seeds
-├── src/
-│   ├── config/          # Environment variables & database client
-│   ├── middlewares/     # Shared Express middlewares
-│   ├── modules/         # Feature modules (routes, controllers, services, schemas)
-│   ├── utils/           # Shared utilities and helpers
-│   ├── app.js           # Express application setup
-│   └── server.js        # HTTP server entry point & graceful shutdown
-├── tests/               # Automated test suites
-├── .env.example         # Environment variable template
-├── .gitignore           # Git ignore rules
-├── .prettierrc          # Prettier formatting configuration
-├── eslint.config.js     # ESLint flat configuration
-└── package.json         # Project metadata and scripts
+├── config/          # db.js (the ONE shared PrismaClient), env.js (validated environment)
+├── routes/          # URL → middleware → controller. index.js mounts every router under /api
+├── controllers/     # Read the request, call a service, send the response (no business logic)
+├── services/        # Business logic and database access (stock.engine.js changes stock)
+├── validations/     # Zod schemas for request body / query / params
+├── middlewares/     # auth (login + roles), validate, rateLimit, errorHandler
+├── utils/           # ApiError, asyncHandler, response, pagination, token, mailer, validators, crud
+├── prisma/          # schema.prisma (the models), migrations/, seed.js
+├── tests/           # Vitest + Supertest suites and helpers
+├── docs/            # CONTEXT.md, DATABASE.md, API.md
+├── app.js           # Express app (no listen, so tests can import it)
+├── server.js        # Connects to MySQL, starts the HTTP server, graceful shutdown
+├── .env.example     # Template for .env (never commit .env)
+└── package.json
 ```
 
 ---

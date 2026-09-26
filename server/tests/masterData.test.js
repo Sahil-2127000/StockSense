@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import app from '../src/app.js';
+import { server } from './helpers/server.js';
 import prisma, { resetDatabase } from './helpers/db.js';
 import { loginAs } from './helpers/auth.js';
 import { createCategory, createContact, createProduct, createWarehouse } from './helpers/factories.js';
@@ -18,7 +18,7 @@ describe('permissions', () => {
   it.each(['/api/warehouses', '/api/locations', '/api/categories', '/api/contacts', '/api/products'])(
     '%s needs login, is readable by STAFF and writable only by MANAGER',
     async (url) => {
-      expect((await request(app).get(url)).status).toBe(401);
+      expect((await request(server).get(url)).status).toBe(401);
       expect((await staff.get(url)).status).toBe(200);
       expect((await staff.post(url).send({})).status).toBe(403);
     }

@@ -1,4 +1,4 @@
-import prisma from '../../src/config/db.js';
+import prisma from '../../config/db.js';
 
 let n = 0;
 const next = () => (n += 1);

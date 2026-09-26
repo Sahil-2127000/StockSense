@@ -1,19 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
+import { server } from './helpers/server.js';
 import express from 'express';
 import { z } from 'zod';
-import app from '../src/app.js';
-import validate from '../src/middlewares/validate.js';
-import errorHandler from '../src/middlewares/errorHandler.js';
-import ApiError from '../src/utils/ApiError.js';
-import asyncHandler from '../src/utils/asyncHandler.js';
-import sendSuccess from '../src/utils/response.js';
-import { getPagination, buildMeta } from '../src/utils/pagination.js';
+import validate from '../middlewares/validate.js';
+import errorHandler from '../middlewares/errorHandler.js';
+import ApiError from '../utils/ApiError.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import sendSuccess from '../utils/response.js';
+import { getPagination, buildMeta } from '../utils/pagination.js';
 
 describe('StockSense Core Middleware & Utilities', () => {
   describe('Health check and 404 route', () => {
     it('GET /api/health returns 200 and status ok', async () => {
-      const response = await request(app).get('/api/health');
+      const response = await request(server).get('/api/health');
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
@@ -23,7 +23,7 @@ describe('StockSense Core Middleware & Utilities', () => {
     });
 
     it('GET /api/unknown-route returns 404 JSON response', async () => {
-      const response = await request(app).get('/api/unknown-route');
+      const response = await request(server).get('/api/unknown-route');
 
       expect(response.status).toBe(404);
       expect(response.body).toEqual({

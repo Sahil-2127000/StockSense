@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
-import prisma from '../src/config/db.js';
+import prisma from '../config/db.js';
 
 // Dates are relative to "now" so late / upcoming operations stay correct whenever the seed runs.
 const daysFromNow = (days, hour = 10) => {

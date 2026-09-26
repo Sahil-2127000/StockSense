@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import app from '../src/app.js';
+import { server } from './helpers/server.js';
 import prisma, { resetDatabase } from './helpers/db.js';
 import { loginAs } from './helpers/auth.js';
 import { createCategory, createProduct, createWarehouse } from './helpers/factories.js';
@@ -142,6 +142,6 @@ describe('update, reorder rule and delete', () => {
     const product = await createProduct();
     const { agent } = await loginAs('STAFF');
     expect((await agent.patch(`/api/products/${product.id}`).send({ name: 'Hacked' })).status).toBe(403);
-    expect((await request(app).get(`/api/products/${product.id}`)).status).toBe(401);
+    expect((await request(server).get(`/api/products/${product.id}`)).status).toBe(401);
   });
 });
