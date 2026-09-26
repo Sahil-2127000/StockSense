@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser';
 import config from './config/env.js';
 import errorHandler from './middlewares/errorHandler.js';
 import ApiError from './utils/ApiError.js';
+import authRoutes from './modules/auth/auth.routes.js';
+import usersRoutes from './modules/users/users.routes.js';
 
 const app = express();
 
@@ -26,6 +28,10 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
   });
 });
+
+// Feature modules
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res, next) => {
