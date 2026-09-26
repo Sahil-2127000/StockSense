@@ -61,12 +61,20 @@ cp .env.example .env
 Ensure `JWT_SECRET` is at least 32 characters and `DATABASE_URL` matches your local MySQL instance.
 
 ### 4. Database Setup & Migrations
+Create the MySQL database and an app user (run once as `root` in MySQL Workbench):
+```sql
+CREATE DATABASE IF NOT EXISTS stocksense CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS stocksense_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'stocksense'@'localhost' IDENTIFIED BY 'choose_a_password';
+GRANT ALL PRIVILEGES ON `stocksense`.* TO 'stocksense'@'localhost';
+GRANT ALL PRIVILEGES ON `stocksense_test`.* TO 'stocksense'@'localhost';
+GRANT ALL PRIVILEGES ON `prisma_migrate_shadow_db%`.* TO 'stocksense'@'localhost';
+FLUSH PRIVILEGES;
+```
+Then create the tables and load sample data:
 ```bash
-# Run migrations
-npm run db:migrate
-
-# (Optional) Seed the database
-npm run db:seed
+npm run db:migrate   # applies prisma/migrations
+npm run db:seed      # users: purvika (MANAGER), aman_shaikh (STAFF), password = SEED_PASSWORD
 ```
 
 ### 5. Running the Application
@@ -81,7 +89,7 @@ npm run start
 ### 6. Health Check
 Verify the server is running:
 ```bash
-curl http://localhost:5000/api/health
+curl http://localhost:5000/api/health   # use your PORT from .env
 ```
 Expected response:
 ```json
