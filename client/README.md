@@ -1,16 +1,27 @@
-# React + Vite
+# StockSense frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + Vite single-page app for StockSense. It talks only to the StockSense API; there is no mock data.
 
-Currently, two official plugins are available:
+## Run
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build in dist/
+npm run lint
+```
+In development Vite proxies `/api` and `/socket.io` to the API (default `http://localhost:5000`). If your API runs elsewhere, create `.env.local` from `.env.example` and set `VITE_API_TARGET`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How it is organised
+| Folder | Purpose |
+|---|---|
+| `services/` | The only code that calls the backend. `api.js` wraps `fetch` (cookies, JSON, errors as `ApiError` with field errors); one service per resource; `socket.service.js` holds the live connection |
+| `context/` | `AuthContext` (current user), `WarehouseContext` (warehouse picked in the top bar), `LiveContext` (Socket.IO status + low-stock alerts), `ToastContext` |
+| `hooks/` | `useApi` (load data, ignore stale responses), `useLive` (react to socket events), `usePage` (pagination that resets with filters), `useDebounce`, `useDocumentTitle` |
+| `components/` | App shell (`Layout`), `DataTable` + `Pagination`, form fields, `Modal` / `ConfirmDialog`, route guards, `CrudPage` for master data |
+| `pages/` | Dashboard, Products, Stock, Operations (list/kanban, form, adjustments, print slip), Move history, Settings, Profile, Users, Auth |
+| `styles/` | `design.css` comes straight from the approved HTML design; `app.css` adds inputs, overlays, states and the responsive layout |
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Conventions
+- Forms validate on the client for quick feedback; the server validates again and its field errors are shown under the matching inputs.
+- Every list supports search, filters and pagination, and refreshes itself when a live event arrives.
+- Managers see create / edit / delete controls; staff get read-only settings. The server enforces the same rules.
