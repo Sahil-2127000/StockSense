@@ -22,3 +22,8 @@ server/coverage/
 .DS_Store
 dist/
 build/
+
+# AI assistant / editor local config (never commit)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
