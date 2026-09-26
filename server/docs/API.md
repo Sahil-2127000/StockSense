@@ -178,3 +178,49 @@ References are generated per warehouse and type: `WH/IN/0001`, `WH/OUT/0001`, `W
 **Safety guarantees**
 - Validating locks the stock rows; two validations at the same moment cannot both use the same stock, and stock never goes negative.
 - Every status change checks the current status in the same database write, so double clicks cannot validate twice.
+
+---
+
+## Stock, move history and dashboard 🔒 (read-only, any role)
+
+### Stock — `GET /api/stock`
+One row per active product. Filters: `?warehouseId=&locationId=&categoryId=&inStock=true&q=`
+```json
+{
+  "product": { "id": 1, "name": "Steel Rod", "sku": "STRD001", "uom": "kg", "category": { "id": 1, "name": "Raw Material" } },
+  "unitCost": 85, "onHand": 47, "reserved": 0, "free": 47, "value": 3995, "stockStatus": "LOW",
+  "reorderRule": { "minQty": 50, "maxQty": 200 },
+  "byLocation": [{ "location": { "id": 3, "fullPath": "WH/Prod" }, "quantity": 27 }]
+}
+```
+`meta` also contains `totalUnits` and `totalValue` for the whole filtered stock (not just the page).
+The "Update" action on the Stock page = `POST /api/operations/adjustments` with the counted quantity.
+
+### Move history — `GET /api/moves`
+The stock ledger: one row per product per move, newest first.
+Filters: `?productId=&locationId=&warehouseId=&type=RECEIPT,DELIVERY&direction=IN|OUT|INTERNAL&from=&to=&q=` (`q` searches reference, contact, product name and SKU)
+```json
+{
+  "id": 12, "quantity": 30, "createdAt": "2026-09-24T16:15:00.000Z", "direction": "INTERNAL",
+  "operation": { "id": 5, "reference": "WH/INT/0001", "type": "TRANSFER", "status": "DONE", "contact": null, "responsible": { "id": 2, "fullName": "Aman Shaikh" } },
+  "product": { "id": 1, "name": "Steel Rod", "sku": "STRD001", "uom": "kg" },
+  "fromLocation": { "fullPath": "WH/Stock1", "type": "INTERNAL" },
+  "toLocation": { "fullPath": "WH/Prod", "type": "INTERNAL" }
+}
+```
+`direction`: `IN` (arrives from a vendor / adjustment gain, show green), `OUT` (leaves to a customer / adjustment loss, show red), `INTERNAL` (between warehouse locations).
+
+### Dashboard — `GET /api/dashboard`
+Everything for the landing page in one call. Filters: `?warehouseId=&categoryId=`
+
+| Field | Content |
+|---|---|
+| `kpis` | `totalProductsInStock, lowStock, outOfStock, pendingReceipts, pendingDeliveries, scheduledTransfers, lateReceipts, lateDeliveries, waitingDeliveries` |
+| `stockValue` | `{ units, value }` (value = Σ quantity × unit cost) |
+| `movement` | 7 items `{ day: "2026-09-26", incoming, outgoing, internal }`, oldest first, in the server's local day |
+| `needsAttention.lowStock` | OUT first, then LOW: `{ product, onHand, minQty, status, suggestedReorderQty }` |
+| `needsAttention.waitingOperations` | Waiting deliveries/transfers with `shortages: [{ product, requested, available, missing }]` |
+| `needsAttention.lateOperations` | Open operations scheduled before today |
+| `recentOperations` | Last 8 changed operations |
+
+For document-type / status filters on lists, use `GET /api/operations?type=&status=` and `GET /api/operations/summary`.
