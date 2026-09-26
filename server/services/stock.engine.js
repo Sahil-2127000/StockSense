@@ -39,7 +39,7 @@ export const nextReference = async (tx, warehouseId, type) => {
 };
 
 // Locks the balance row (SELECT ... FOR UPDATE) so concurrent moves wait for each other
-const lockQuantity = async (tx, productId, locationId) => {
+export const lockQuantity = async (tx, productId, locationId) => {
   const rows = await tx.$queryRaw`
     SELECT quantity FROM stock_quants
     WHERE productId = ${productId} AND locationId = ${locationId}
