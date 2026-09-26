@@ -7,7 +7,7 @@ export const TEST_PASSWORD = 'Test@12345';
 
 let counter = 0;
 
-export const createUser = async ({ role = 'STAFF', isActive = true, ...overrides } = {}) => {
+export const createUser = async ({ role = 'STAFF', isActive = true, verified = true, ...overrides } = {}) => {
   counter += 1;
   return prisma.user.create({
     data: {
@@ -17,6 +17,7 @@ export const createUser = async ({ role = 'STAFF', isActive = true, ...overrides
       passwordHash: await hashPassword(overrides.password ?? TEST_PASSWORD),
       role,
       isActive,
+      emailVerifiedAt: verified ? new Date() : null,
       ...(overrides.loginId && { loginId: overrides.loginId }),
       ...(overrides.email && { email: overrides.email }),
     },

@@ -67,6 +67,7 @@ const errorHandler = (err, req, res, next) => {
   const responsePayload = {
     success: false,
     message,
+    ...(err instanceof ApiError && err.code && { code: err.code }),
     ...(errors && { errors }),
     ...(config.NODE_ENV === 'development' && statusCode === 500 && err.stack && { stack: err.stack }),
   };

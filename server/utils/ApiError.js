@@ -10,6 +10,12 @@ class ApiError extends Error {
     }
   }
 
+  // Machine-readable reason the client can act on, e.g. 'EMAIL_NOT_VERIFIED'
+  withCode(code) {
+    this.code = code;
+    return this;
+  }
+
   static badRequest(message = 'Bad request', errors = []) {
     return new ApiError(400, message, errors);
   }

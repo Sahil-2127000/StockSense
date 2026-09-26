@@ -79,7 +79,9 @@ const openapi = {
   security: [{ cookieAuth: [] }, { bearerAuth: [] }],
   tags: ['Auth', 'Users', 'Warehouses', 'Locations', 'Categories', 'Contacts', 'Products', 'Operations', 'Reports'].map((name) => ({ name })),
   paths: {
-    '/auth/signup': { post: { ...op('Auth', 'Create an account (always STAFF)', { requestBody: body({ loginId: 'sahil_01', email: 'sahil@example.com', fullName: 'Sahil Maurya', password: 'Strong@Pass1', confirmPassword: 'Strong@Pass1' }), status: 201 }), security: [] } },
+    '/auth/signup': { post: { ...op('Auth', 'Create an unverified account and email a code', { requestBody: body({ loginId: 'sahil_01', email: 'sahil@example.com', fullName: 'Sahil Maurya', password: 'Strong@Pass1', confirmPassword: 'Strong@Pass1' }), status: 201 }), security: [] } },
+    '/auth/verify-email': { post: { ...op('Auth', 'Verify the sign-up code (logs in)', { requestBody: body({ email: 'sahil@example.com', code: '123456' }) }), security: [] } },
+    '/auth/resend-verification': { post: { ...op('Auth', 'Send a new sign-up code (always 200)', { requestBody: body({ email: 'sahil@example.com' }) }), security: [] } },
     '/auth/login': { post: { ...op('Auth', 'Log in (sets the cookie)', { requestBody: body({ loginId: 'purvika', password: 'your SEED_PASSWORD' }) }), security: [] } },
     '/auth/logout': { post: { ...op('Auth', 'Log out'), security: [] } },
     '/auth/forgot-password': { post: { ...op('Auth', 'Send a 6-digit reset code (always 200)', { requestBody: body({ email: 'purvika@example.com' }) }), security: [] } },

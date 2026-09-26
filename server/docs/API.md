@@ -32,12 +32,16 @@ Every list accepts `?page=1&limit=20` (max 100) and `?q=` for search, and return
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/signup` | `loginId, email, fullName, password, confirmPassword` | 201 → user. New accounts are always STAFF |
-| POST | `/login` | `loginId, password` | Sets cookie, returns user. Wrong details → 401 `Invalid Login Id or Password`. Max 10 tries / 15 min |
+| POST | `/signup` | `loginId, email, fullName, password, confirmPassword` | 201 → `{ email, verificationRequired: true }`. Creates an **unverified** STAFF account and emails a 6-digit code |
+| POST | `/verify-email` | `email, code` | Verifies the email and logs the user in (sets cookie, returns user) |
+| POST | `/resend-verification` | `email` | Always 200. New code at most once per 60 s |
+| POST | `/login` | `loginId, password` | Sets cookie, returns user. Wrong details → 401 `Invalid Login Id or Password`. Correct password but unverified email → 403 with `code: "EMAIL_NOT_VERIFIED"` and the email in `errors[0].message` (a fresh code is sent). Max 10 tries / 15 min |
 | POST | `/logout` | — | Clears cookie |
 | POST | `/forgot-password` | `email` | Always 200 (never reveals if the email exists). Sends a 6-digit code, valid 10 min, one per 60 s |
 | POST | `/verify-otp` | `email, code` | → `{ resetToken }` (valid 15 min). 5 wrong tries locks the code |
-| POST | `/reset-password` | `resetToken, password, confirmPassword` | Sets the new password; the token works once |
+| POST | `/reset-password` | `resetToken, password, confirmPassword` | Sets the new password; the token works once. Also marks the email verified |
+
+Sign-up codes and reset codes are separate: a code only works for the purpose it was sent for.
 
 **Validation rules**
 - `loginId`: 6–12 characters, letters / numbers / underscore, unique
