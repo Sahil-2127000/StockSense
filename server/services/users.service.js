@@ -3,6 +3,7 @@ import prisma from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
 import { buildMeta, getPagination } from '../utils/pagination.js';
 import { hashPassword } from './auth.service.js';
+import { signAuthToken } from '../utils/token.js';
 import { publicUserSelect } from '../utils/userSelect.js';
 
 const findUserOr404 = async (id) => {
@@ -36,7 +37,9 @@ export const changePassword = async (userId, { currentPassword, password }) => {
       { field: 'currentPassword', message: 'Current password is incorrect' },
     ]);
   }
-  await prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(password) } });
+  // Other sessions are logged out (their token fingerprint no longer matches); return a fresh token for this one
+  const updated = await prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(password) } });
+  return signAuthToken(updated);
 };
 
 export const listUsers = async (query) => {

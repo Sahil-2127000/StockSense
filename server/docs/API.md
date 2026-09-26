@@ -224,3 +224,50 @@ Everything for the landing page in one call. Filters: `?warehouseId=&categoryId=
 | `recentOperations` | Last 8 changed operations |
 
 For document-type / status filters on lists, use `GET /api/operations?type=&status=` and `GET /api/operations/summary`.
+
+---
+
+## Real-time updates (Socket.IO)
+
+Connect to the server root (same host and port as the API). The login cookie is sent automatically from the browser; connections without a valid login are refused.
+
+```js
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:5000', { withCredentials: true });
+
+socket.on('connected', ({ user }) => console.log('live as', user.loginId));
+socket.on('operation:updated', ({ id, reference, type, status }) => { /* refresh lists, kanban, detail */ });
+socket.on('stock:changed', ({ productIds }) => { /* refresh stock / product views */ });
+socket.on('stock:low', ({ product, onHand, minQty, status }) => { /* show a low / out of stock alert */ });
+socket.on('dashboard:refresh', () => { /* re-fetch GET /api/dashboard */ });
+socket.on('connect_error', (err) => { /* "Please log in" → redirect to login */ });
+```
+
+| Event | When | Payload |
+|---|---|---|
+| `operation:updated` | an operation is created, edited, confirmed, re-checked, validated, cancelled or deleted (`status: "DELETED"`) | `{ id, reference, type, status }` |
+| `stock:changed` | stock moved (validation, adjustment, initial stock) | `{ productIds }` |
+| `stock:low` | after a stock change, for each affected product that is LOW or OUT | `{ product: { id, name, sku, uom }, onHand, minQty, status }` |
+| `dashboard:refresh` | any of the above | `{}` |
+
+Outside a browser, pass the token instead: `io(url, { auth: { token } })`.
+
+---
+
+## Other endpoints
+
+| Path | Notes |
+|---|---|
+| `GET /api/health` | `{ status: "ok", database: "up", uptime }`, or 503 `{ database: "down" }` |
+| `GET /api/docs` | Swagger UI: try every endpoint in the browser (log in with `/auth/login` first) |
+| `GET /api/docs/openapi.json` | OpenAPI 3 spec (import into Postman: *Import → Link*) |
+
+## Security summary
+- Passwords: bcrypt (12 rounds). OTP codes: stored as HMAC hashes, 10-minute expiry, 60 s resend limit, 5 attempts.
+- Sessions: JWT in an httpOnly, SameSite=Lax cookie (Secure in production). Each token carries a password fingerprint, so a password change or reset logs out all other sessions. Deactivated users are rejected immediately.
+- Authorization: every route except auth and health requires login; master-data writes and user management are MANAGER only.
+- Input: every body, query and URL parameter is validated with Zod; unknown fields are dropped.
+- Abuse: rate limits on login (10 / 15 min), OTP (5 / 15 min) and the whole API (300 / min per IP); JSON bodies limited to 100 kb; Helmet security headers; CORS restricted to `CLIENT_URL`.
+- Database: parameterised queries only (Prisma / tagged `$queryRaw`), transactions with row locks for every stock change.
+- Errors: one JSON format; stack traces are never sent outside development.

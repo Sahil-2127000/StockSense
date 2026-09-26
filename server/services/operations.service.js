@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
 import { buildMeta, getPagination } from '../utils/pagination.js';
+import { operationChanged, stockChanged } from './events.service.js';
 import { getSystemLocation, lockQuantity, moveStock, nextReference } from './stock.engine.js';
 
 /*
@@ -200,6 +201,13 @@ export const getById = async (id) => {
 
 // ─── Commands ───
 
+// Sends real-time events after a committed change; stock: true when stock moved
+const notify = (operation, { stock = false } = {}) => {
+  operationChanged(operation);
+  if (stock) stockChanged(operation.lines.map((l) => l.productId));
+  return operation;
+};
+
 export const create = async ({ type, contactId, scheduleDate, notes, lines, ...locationIds }, user) => {
   const id = await prisma.$transaction(async (tx) => {
     const { source, dest } = await resolveLocations(tx, type, locationIds);
@@ -223,7 +231,7 @@ export const create = async ({ type, contactId, scheduleDate, notes, lines, ...l
     });
     return operation.id;
   });
-  return getById(id);
+  return notify(await getById(id));
 };
 
 export const update = async (id, { lines, contactId, scheduleDate, notes, ...locationIds }) => {
@@ -249,7 +257,7 @@ export const update = async (id, { lines, contactId, scheduleDate, notes, ...loc
       await tx.operationLine.createMany({ data: lines.map((l) => ({ ...l, operationId: id })) });
     }
   });
-  return getById(id);
+  return notify(await getById(id));
 };
 
 // Moves the status only if it is still what we expect (guards against double clicks / races)
@@ -269,7 +277,7 @@ export const confirm = async (id) => {
     if (!availability.every((a) => a.enough)) next = 'WAITING';
   }
   await transition(prisma, id, ['DRAFT'], next);
-  return getById(id);
+  return notify(await getById(id));
 };
 
 // Re-tests stock for WAITING / READY deliveries and transfers and updates the status
@@ -281,7 +289,7 @@ export const checkAvailability = async (id) => {
   const availability = await availabilityFor(prisma, operation);
   const next = availability.every((a) => a.enough) ? 'READY' : 'WAITING';
   if (next !== operation.status) await transition(prisma, id, [operation.status], next);
-  return getById(id);
+  return notify(await getById(id));
 };
 
 // READY → DONE: the moment stock actually moves
@@ -304,14 +312,14 @@ export const validate = async (id) => {
       products,
     });
   });
-  return getById(id);
+  return notify(await getById(id), { stock: true });
 };
 
 export const cancel = async (id) => {
   const operation = await findOr404(id);
   assertStatus(operation, OPEN_STATUSES, 'cancel');
   await transition(prisma, id, OPEN_STATUSES, 'CANCELLED');
-  return getById(id);
+  return notify(await getById(id));
 };
 
 // Only drafts can be deleted; anything confirmed stays for the audit trail (cancel it instead)
@@ -319,6 +327,7 @@ export const remove = async (id) => {
   const operation = await findOr404(id);
   assertStatus(operation, ['DRAFT'], 'delete');
   await prisma.operation.delete({ where: { id } });
+  operationChanged({ ...operation, status: 'DELETED' });
 };
 
 /**
@@ -360,5 +369,5 @@ export const createAdjustment = async ({ productId, locationId, countedQuantity,
     await moveStock(tx, { operationId: operation.id, from, to, lines, products: { [productId]: product } });
     return operation.id;
   });
-  return getById(id);
+  return notify(await getById(id), { stock: true });
 };

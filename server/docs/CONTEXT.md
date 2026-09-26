@@ -40,6 +40,7 @@ Each feature (e.g. `products`) has one file in each layer:
 Request flow: `route → validate → controller → service → Prisma → MySQL`.
 Master-data controllers and routers use the shared `crudController` / `crudRouter` helpers in `utils/crud.js` so list / get / create / update / delete behave the same everywhere.
 Stock is only ever changed through `services/stock.engine.js` (`moveStock`), inside a transaction.
+After a committed change, services call `services/events.service.js` (`operationChanged`, `stockChanged`) to push Socket.IO events; `utils/socket.js` makes `emit` a no-op when sockets are not running (tests).
 
 ### Database Access
 All database access must use the shared PrismaClient instance exported from `config/db.js`.

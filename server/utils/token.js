@@ -1,10 +1,16 @@
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
 
 export const AUTH_COOKIE = 'token';
 
+// Short fingerprint of the password hash. It changes whenever the password changes,
+// which invalidates every token issued before (e.g. after a password reset).
+export const passwordVersion = (passwordHash) =>
+  crypto.createHash('sha256').update(passwordHash).digest('hex').slice(0, 16);
+
 export const signAuthToken = (user) =>
-  jwt.sign({ sub: String(user.id), role: user.role }, config.JWT_SECRET, {
+  jwt.sign({ sub: String(user.id), role: user.role, pwv: passwordVersion(user.passwordHash) }, config.JWT_SECRET, {
     expiresIn: config.JWT_EXPIRES_IN,
   });
 

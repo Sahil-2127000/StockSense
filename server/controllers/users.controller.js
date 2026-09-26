@@ -1,4 +1,5 @@
 import sendSuccess from '../utils/response.js';
+import { AUTH_COOKIE, authCookieOptions } from '../utils/token.js';
 import * as usersService from '../services/users.service.js';
 
 export const getMe = async (req, res) => {
@@ -10,8 +11,9 @@ export const updateMe = async (req, res) => {
 };
 
 export const changeMyPassword = async (req, res) => {
-  await usersService.changePassword(req.user.id, req.validated.body);
-  sendSuccess(res, { message: 'Password changed' });
+  const token = await usersService.changePassword(req.user.id, req.validated.body);
+  res.cookie(AUTH_COOKIE, token, authCookieOptions(token));
+  sendSuccess(res, { message: 'Password changed. Other sessions have been logged out.' });
 };
 
 export const list = async (req, res) => {
