@@ -46,3 +46,37 @@ export const withPasswordConfirmation = (schema, field = 'password') =>
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   });
+
+const maxDecimals = (places) => (value) => Number.isInteger(Math.round(value * 10 ** places * 1e6) / 1e6);
+
+// Stock quantities: DECIMAL(12,3)
+export const quantityField = z.coerce
+  .number({ error: 'Quantity must be a number' })
+  .positive('Quantity must be greater than 0')
+  .max(999_999_999, 'Quantity is too large')
+  .refine(maxDecimals(3), 'Quantity can have at most 3 decimal places');
+
+// Counted quantities may be zero
+export const countedQuantityField = z.coerce
+  .number({ error: 'Quantity must be a number' })
+  .min(0, 'Quantity cannot be negative')
+  .max(999_999_999, 'Quantity is too large')
+  .refine(maxDecimals(3), 'Quantity can have at most 3 decimal places');
+
+// Money: DECIMAL(12,2)
+export const moneyField = z.coerce
+  .number({ error: 'Amount must be a number' })
+  .min(0, 'Amount cannot be negative')
+  .max(9_999_999_999, 'Amount is too large')
+  .refine(maxDecimals(2), 'Amount can have at most 2 decimal places');
+
+export const positiveId = (label) =>
+  z.coerce.number({ error: `${label} is required` }).int().positive(`${label} is required`);
+
+export const optionalText = (max) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Must be at most ${max} characters`)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v));

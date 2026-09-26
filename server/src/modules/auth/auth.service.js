@@ -7,7 +7,8 @@ import { sendMail } from '../../utils/mailer.js';
 import { signAuthToken, signResetToken, verifyToken } from '../../utils/token.js';
 import { publicUserSelect } from '../users/users.select.js';
 
-const BCRYPT_ROUNDS = 12;
+// Full strength in real use; cheaper hashing keeps the test suite fast
+const BCRYPT_ROUNDS = config.NODE_ENV === 'test' ? 4 : 12;
 const OTP_TTL_MINUTES = 10;
 const OTP_RESEND_SECONDS = 60;
 const OTP_MAX_ATTEMPTS = 5;
