@@ -17,11 +17,15 @@ export const stockStatus = (onHand, minQty) => {
 /**
  * On hand / reserved / free quantities for many products in two grouped queries.
  * Reserved = quantities on READY deliveries and transfers (confirmed but not yet validated).
- * Optional warehouseId limits everything to one warehouse.
+ * Optional warehouseId / locationId limit everything to one warehouse or one location.
  */
-export const getStockSummary = async (productIds, { warehouseId } = {}) => {
+export const getStockSummary = async (productIds, { warehouseId, locationId } = {}) => {
   if (!productIds.length) return new Map();
-  const locationFilter = { type: 'INTERNAL', ...(warehouseId && { warehouseId }) };
+  const locationFilter = {
+    type: 'INTERNAL',
+    ...(warehouseId && { warehouseId }),
+    ...(locationId && { id: locationId }),
+  };
 
   const [onHandRows, reservedRows] = await Promise.all([
     prisma.stockQuant.groupBy({
@@ -54,10 +58,10 @@ export const getStockSummary = async (productIds, { warehouseId } = {}) => {
 
 /**
  * Product ids matching a stock status, computed in SQL so filtering works across all pages.
- * Options: warehouseId (stock in one warehouse), categoryId, activeOnly.
+ * Options: warehouseId / locationId (stock in one warehouse or location), categoryId, activeOnly.
  */
-export const productIdsByStatus = async (status, { warehouseId, categoryId, activeOnly = false } = {}) => {
-  const warehouseClause = warehouseId ? Prisma.sql`AND l.warehouseId = ${warehouseId}` : Prisma.empty;
+export const productIdsByStatus = async (status, { warehouseId, locationId, categoryId, activeOnly = false } = {}) => {
+  const warehouseClause = Prisma.sql`${warehouseId ? Prisma.sql`AND l.warehouseId = ${warehouseId}` : Prisma.empty} ${locationId ? Prisma.sql`AND l.id = ${locationId}` : Prisma.empty}`;
   const qty = Prisma.sql`COALESCE(s.qty, 0)`;
   const condition = {
     OUT: Prisma.sql`${qty} <= 0`,
@@ -86,7 +90,7 @@ export const productIdsByStatus = async (status, { warehouseId, categoryId, acti
 /**
  * Total units and total value (quantity × unit cost) held in warehouse locations.
  */
-export const stockValue = async ({ warehouseId, categoryId } = {}) => {
+export const stockValue = async ({ warehouseId, locationId, categoryId } = {}) => {
   const [row] = await prisma.$queryRaw`
     SELECT COALESCE(SUM(sq.quantity), 0) AS units, COALESCE(SUM(sq.quantity * p.unitCost), 0) AS value
     FROM stock_quants sq
@@ -94,6 +98,7 @@ export const stockValue = async ({ warehouseId, categoryId } = {}) => {
     JOIN products p ON p.id = sq.productId
     WHERE l.type = 'INTERNAL'
       ${warehouseId ? Prisma.sql`AND l.warehouseId = ${warehouseId}` : Prisma.empty}
+      ${locationId ? Prisma.sql`AND l.id = ${locationId}` : Prisma.empty}
       ${categoryId ? Prisma.sql`AND p.categoryId = ${categoryId}` : Prisma.empty}`;
   return { units: new Prisma.Decimal(row.units), value: new Prisma.Decimal(row.value) };
 };
