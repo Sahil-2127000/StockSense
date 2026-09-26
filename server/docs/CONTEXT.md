@@ -65,27 +65,30 @@ All API endpoints must adhere to the following response envelope:
 ```
 server/
 ├── docs/
-│   └── CONTEXT.md
+│   ├── CONTEXT.md          # This file: team context & conventions
+│   └── DATABASE.md         # Database design & table reference
 ├── prisma/
-│   └── .gitkeep
+│   ├── migrations/         # Versioned SQL migrations (always commit these)
+│   ├── schema.prisma       # Database schema (owned by Purvika)
+│   └── seed.js             # Sample data (npm run db:seed)
 ├── src/
 │   ├── config/
-│   │   ├── db.js
-│   │   └── env.js
-│   ├── middlewares/
-│   │   └── .gitkeep
-│   ├── modules/
-│   │   └── .gitkeep
-│   ├── utils/
-│   │   └── .gitkeep
-│   ├── app.js
-│   └── server.js
-├── tests/
-│   └── health.test.js
-├── .env.example
-├── .gitignore
-├── .prettierrc
+│   │   ├── db.js           # The ONE shared PrismaClient
+│   │   └── env.js          # Validated environment variables
+│   ├── middlewares/        # errorHandler, validate (+ auth, rate limits later)
+│   ├── modules/            # Feature modules: <name>.routes/controller/service/validation.js
+│   ├── utils/              # ApiError, asyncHandler, response, pagination
+│   ├── app.js              # Express app (no listen, so tests can import it)
+│   └── server.js           # Connects to MySQL, starts HTTP server, graceful shutdown
+├── tests/                  # Vitest + Supertest suites
+├── .env.example            # Template for .env (never commit .env)
 ├── eslint.config.js
-├── package.json
-└── README.md
+├── .prettierrc
+└── package.json
 ```
+
+## Git Workflow
+- Never commit directly to `main`; work on your own branch and merge through a Pull Request.
+- Before starting work: `git checkout main && git pull`, then merge `main` into your branch.
+- Never force-push to shared branches. Never commit `.env`, `.env.test` or `node_modules`.
+- Schema changes: edit `schema.prisma`, run `npx prisma migrate dev --name <change>`, and commit the new migration folder.
