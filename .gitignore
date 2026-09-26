@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+server/node_modules/
+client/node_modules/
+
+# Environment
+.env
+.env.local
+server/.env
+client/.env
+
+# Logs
+logs/
+server/logs/
+*.log
+
+# Coverage
+coverage/
+server/coverage/
+
+# OS
+.DS_Store
+dist/
+build/
+
+# AI assistant / editor local config (never commit)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
