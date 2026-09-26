@@ -71,7 +71,7 @@ async function main() {
     },
   });
 
-  const locStock2 = await prisma.location.create({
+  const _locStock2 = await prisma.location.create({
     data: {
       warehouseId: warehouse.id,
       name: 'Rack B',
@@ -181,7 +181,7 @@ async function main() {
     },
   });
 
-  const customerDeco = await prisma.contact.create({
+  const _customerDeco = await prisma.contact.create({
     data: {
       name: 'Deco Addict',
       type: 'CUSTOMER',
