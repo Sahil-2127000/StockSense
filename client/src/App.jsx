@@ -1,122 +1,43 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
+import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import ResetPassword from "./pages/auth/ResetPassword";
+import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import Stock from "./pages/Stock";
+import "./styles/theme.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+// This is a placeholder router just to preview all of "your" screens together.
+// Swap it for react-router-dom (or whatever the team lead picks) once you
+// merge with your teammate's screens.
+export default function App() {
+  const [view, setView] = useState("login");
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  const nav = (next) => {
+    // Sidebar items that don't map to a screen you own yet just log for now —
+    // your teammate's routes will replace this.
+    const yours = ["dashboard", "products", "stock"];
+    if (yours.includes(next) || ["login", "signup", "reset"].includes(next)) {
+      setView(next);
+    } else {
+      console.log(`Navigate to "${next}" — not built yet in this half of the app`);
+    }
+  };
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  switch (view) {
+    case "login":
+      return <Login onLogin={async () => setView("dashboard")} onGoSignup={() => setView("signup")} onGoReset={() => setView("reset")} />;
+    case "signup":
+      return <Signup onSignup={async () => setView("dashboard")} onGoLogin={() => setView("login")} />;
+    case "reset":
+      return <ResetPassword onComplete={async () => setView("dashboard")} onGoLogin={() => setView("login")} />;
+    case "dashboard":
+      return <Dashboard onNavigate={nav} />;
+    case "products":
+      return <Products onNavigate={nav} />;
+    case "stock":
+      return <Stock onNavigate={nav} />;
+    default:
+      return <Dashboard onNavigate={nav} />;
+  }
 }
-
-export default App
