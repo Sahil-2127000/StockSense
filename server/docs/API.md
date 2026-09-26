@@ -122,3 +122,59 @@ Numbers (quantities, costs) are returned as JSON numbers, e.g. `"quantity": 7.5`
 - `onHand`: total in warehouse locations · `reserved`: on READY deliveries/transfers · `free` = onHand − reserved
 - `stockStatus`: `OUT` (nothing left), `LOW` (at or below `minQty`), `OK`
 - Detail (`GET /:id`) also returns `stockByLocation: [{ location, quantity }]` and `suggestedReorderQty` (`maxQty − onHand` when LOW/OUT).
+
+---
+
+## Operations — `/api/operations` 🔒 (MANAGER and STAFF)
+
+Receipts, deliveries, internal transfers and adjustments share one endpoint; `type` tells them apart.
+
+| Type | From → To | Contact | Flow |
+|---|---|---|---|
+| `RECEIPT` | Vendors → `destLocationId` | supplier (required) | DRAFT → READY → DONE |
+| `DELIVERY` | `sourceLocationId` → Customers | customer (required) | DRAFT → WAITING ⇄ READY → DONE |
+| `TRANSFER` | `sourceLocationId` → `destLocationId` | — | DRAFT → WAITING ⇄ READY → DONE |
+| `ADJUSTMENT` | created by `POST /adjustments` | — | DONE immediately |
+
+Open operations (DRAFT / WAITING / READY) can be **cancelled**. Stock changes only on **DONE**.
+**Late** = still open and scheduled before today (`isLate: true`).
+References are generated per warehouse and type: `WH/IN/0001`, `WH/OUT/0001`, `WH/INT/0001`, `WH/ADJ/0001`.
+
+| Method | Path | Body / Query | Notes |
+|---|---|---|---|
+| GET | `/` | `?type=RECEIPT,DELIVERY&status=READY,WAITING&warehouseId=&locationId=&contactId=&productId=&late=true&from=&to=&q=` | `type` / `status` accept comma lists. `q` searches reference and contact name. Sorted by schedule date (newest first) |
+| GET | `/summary` | `?type=&warehouseId=` | `{ DRAFT, WAITING, READY, DONE, CANCELLED, late, total }` for kanban columns and badges |
+| POST | `/` | see below | Creates a DRAFT; the signed-in user becomes `responsible` |
+| GET | `/:id` | — | Detail. Open deliveries/transfers include `availability[]`; DONE ones include `stockMoves[]` |
+| PATCH | `/:id` | same fields as create (no `type`) | DRAFT only. `lines` replaces all lines |
+| DELETE | `/:id` | — | DRAFT only (otherwise cancel) |
+| POST | `/:id/confirm` | — | DRAFT → READY, or WAITING when a delivery/transfer is short on stock |
+| POST | `/:id/check-availability` | — | Re-tests stock: WAITING ⇄ READY |
+| POST | `/:id/validate` | — | READY → DONE and moves the stock. 409 `Not enough stock` if it ran out meanwhile |
+| POST | `/:id/cancel` | — | Open → CANCELLED |
+| POST | `/adjustments` | `productId, locationId, countedQuantity, reason?` | Books the difference to the recorded stock as a DONE adjustment. 400 if there is no difference |
+
+**Create body**
+```json
+{
+  "type": "DELIVERY",
+  "contactId": 4,
+  "sourceLocationId": 1,
+  "scheduleDate": "2026-09-28T10:00:00.000Z",
+  "notes": "Deliver before noon",
+  "lines": [{ "productId": 7, "quantity": 12 }]
+}
+```
+- RECEIPT needs `contactId` (supplier) + `destLocationId`; DELIVERY needs `contactId` (customer) + `sourceLocationId`; TRANSFER needs both locations (different).
+- `lines`: 1–100 products, each product once, `quantity > 0` (max 3 decimals).
+- `scheduleDate` defaults to now.
+
+**Availability (open deliveries / transfers)**
+```json
+"availability": [{ "productId": 7, "requested": 12, "available": 3, "enough": false }]
+```
+`available` = stock at the source location minus what other READY operations there have reserved.
+
+**Safety guarantees**
+- Validating locks the stock rows; two validations at the same moment cannot both use the same stock, and stock never goes negative.
+- Every status change checks the current status in the same database write, so double clicks cannot validate twice.
